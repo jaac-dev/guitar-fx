@@ -2,6 +2,12 @@
 #include "lcd.h"
 #include "gpio.h"
 
+static bool g_user_button_pressed = false;
+
+static void user_button_handler() {
+	g_user_button_pressed = true;
+}
+
 /// Initialize the high speed clock.
 void hs_clock_init();
 
@@ -18,11 +24,19 @@ int main() {
 	
 	// Initialize LCD A.
 	lcd_t lcd_a = lcd_a_init();
+	lcd_command_clear(&lcd_a);
+	delay_ms(20);
 	
-	// Write a message to the LCD.
-	lcd_print(&lcd_a, "Hello, world!");
+	// Configure the user button as an interrupt.
+	gpio_configure_interrupt(GPIOA, 0, EXTI_EDGE_RISING, PUPD_PULL_UP, 1, user_button_handler);
 	
-	while (1) {}
+	while (1) {
+		if (!g_user_button_pressed) continue;
+		
+		lcd_print(&lcd_a, "erhm");
+		delay_ms(1000);
+	}
+	
 	return 0;
 }
 
@@ -86,9 +100,7 @@ void hs_clock_init() {
 }
 
 lcd_t lcd_a_init() {
-	// Enable the clock for block C.
-	RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
-	
+	// Configure the pins.
 	gpio_configure_out(GPIOC, 6);
 	gpio_configure_out(GPIOC, 7);
 	gpio_configure_out(GPIOC, 8);
